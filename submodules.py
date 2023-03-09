@@ -4,32 +4,23 @@ import os
 import sys
 import re
 import subprocess
+import argparse
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: git-submodules.py <path>")
-        sys.exit(1)
+def create_submodules(path):
 
-    path = sys.argv[1]
-    if not os.path.isdir(path):
-        print("Directory does not exist: " + path)
-        sys.exit(1)
+    # Create submodules in the current directory
+    # from the repositories in the specified path
 
     # initialize a git repository in the current directory if it doesn't exist
     if not os.path.isdir(".git"):
         subprocess.run(["git", "init"], check=True)
 
-    # make an old directory if it does not exist
-    old_path = os.path.join(path, ".")
-    if not os.path.isdir(old_path):
-        os.mkdir(old_path)
-
     # create a set of domains to skip
     skip_domains = set()
-    skip_domains.add("gatech.edu")
-    skip_domains.add("git.overleaf.com")
+    skip_domains = skip_domains.union({"gatech.edu", "git.overleaf.com", "gtnoise.net", "openflowswitch.org", "strozfriedberg.com"})
 
     # initialize an empty set of current URLs
+    # the current urls refer to the URLs of git repositories in the current directory
     current_urls = set()
 
     # search .git directory in this directory and all subdirectories for config files
@@ -92,7 +83,7 @@ def main():
 
                         # reassign dest unless user hits enter
                         new_dest = input("New name? [N/name/[Continue]] : ")
-                        if new_dest == "C":
+                        if new_dest == "c":
                             continue
                         if new_dest != "":
                             dest = new_dest
@@ -112,5 +103,33 @@ def main():
                             print("Called process error")
                             continue
 
+
+
+def main():
+
+    # parse command line arguments
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("path", help="path to directory containing git repositories")
+    
+    # switch argument to move submodule that takes two arguments: old name and new name
+    parser.add_argument("-m", "--move-submodule", help="move submodule", nargs=2)
+    # switch argument to remove submodule
+    parser.add_argument("-d", "--delete-submodule", help="delete submodule", nargs=1)
+
+    # switch argument to list respositories
+    parser.add_argument("-r", "--list-repos", help="list respositories", action="store_true")
+    # switch argument to list submodules
+    parser.add_argument("-s", "--list-submodules", help="list submodules", action="store_true")
+    args = parser.parse_args()
+
+    # exit if the path does not exist
+    if not os.path.isdir(args.path):
+        print("Path does not exist")
+        sys.exit(1)
+
+    path = args.path
+
+    create_submodules(path)
 
 __name__ == "__main__" and main()
