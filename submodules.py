@@ -103,6 +103,43 @@ def create_submodules(path):
                             print("Called process error")
                             continue
 
+def delete_submodule(submodule):
+    # delete the specified submodule
+    subprocess.call(["git", "submodule", "deinit", submodule])
+    subprocess.call(["git", "rm", submodule])
+    subprocess.call(["rm", "-rf", ".git/modules/" + submodule])
+    subprocess.call(["git", "config", "--remove-section", "submodule." + submodule])
+    subprocess.call(["git", "commit", "-m", "'remove " + submodule + " submodule'."])
+    subprocess.call(["git", "push"])
+
+def move_submodule(old_path, new_path):
+    
+    repo_path = os.getcwd()
+
+    # Step 1: Remove the submodule from the parent repository
+    subprocess.call(["git", "submodule", "deinit", old_path], cwd=repo_path)
+
+    # Step 3: Move the submodule to its new location
+    subprocess.call(["mv", old_submodule_path, new_path], cwd=repo_path)
+
+    # Step 2: Remove the submodule from the Git index
+    subprocess.call(["git", "rm", old_path], cwd=repo_path)
+
+
+    # Step 4: Stage the new submodule in the Git index
+    subprocess.call(["git", "add", new_path], cwd=repo_path)
+
+    # Step 5: Update the submodule's location in the .gitmodules file
+    subprocess.call(["git", "mv", old_path, new_path], cwd=repo_path)
+
+    # Step 6: Commit the changes to the parent repository
+    commit_message = "Moved and renamed submodule"
+    subprocess.call(["git", "commit", "-m", commit_message], cwd=repo_path)
+
+    # Step 7: Update the submodule in the parent repository
+    subprocess.call(["git", "submodule", "update"], cwd=repo_path)
+
+
 
 
 def main():
@@ -110,12 +147,13 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("path", help="path to directory containing git repositories")
+    # switch to create submodules with the specified path
+    parser.add_argument("-c", "--create", help="create submodules", nargs=1)
     
-    # switch argument to move submodule that takes two arguments: old name and new name
-    parser.add_argument("-m", "--move-submodule", help="move submodule", nargs=2)
     # switch argument to remove submodule
     parser.add_argument("-d", "--delete-submodule", help="delete submodule", nargs=1)
+    # switch argument to move submodule that takes two arguments: old name and new name
+    parser.add_argument("-m", "--move-submodule", help="move submodule", nargs=2)
 
     # switch argument to list respositories
     parser.add_argument("-r", "--list-repos", help="list respositories", action="store_true")
@@ -123,13 +161,17 @@ def main():
     parser.add_argument("-s", "--list-submodules", help="list submodules", action="store_true")
     args = parser.parse_args()
 
-    # exit if the path does not exist
-    if not os.path.isdir(args.path):
-        print("Path does not exist")
-        sys.exit(1)
-
-    path = args.path
-
-    create_submodules(path)
-
+    if args.create:
+        create_submodules(args.create[0])
+    elif args.move_submodule:
+        move_submodule(args.move_submodule[0], args.move_submodule[1])
+    elif args.delete_submodule:
+        delete_submodule(args.delete_submodule[0])
+    elif args.list_repos:
+        list_repos(args.path)
+    elif args.list_submodules:
+        list_submodules()
+    else:
+        parser.print_help()
+    
 __name__ == "__main__" and main()
