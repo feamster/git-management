@@ -105,8 +105,9 @@ def create_submodules(path):
 
 def delete_submodule(submodule):
     # delete the specified submodule
-    subprocess.call(["git", "submodule", "deinit", submodule])
-    subprocess.call(["git", "rm", submodule])
+    print("Deleting submodule " + submodule)
+    subprocess.call(["git", "submodule", "deinit", "-f", submodule])
+    subprocess.call(["git", "rm", "-f", submodule])
     subprocess.call(["rm", "-rf", ".git/modules/" + submodule])
     subprocess.call(["git", "config", "--remove-section", "submodule." + submodule])
     subprocess.call(["git", "commit", "-m", "'remove " + submodule + " submodule'."])
@@ -140,6 +141,16 @@ def move_submodule(old_path, new_path):
     subprocess.call(["git", "submodule", "update"], cwd=repo_path)
 
 
+def attach_submodule(path):
+
+    #for root, dirs, files in os.walk(path):
+    # perform a recursive search of the specified path
+    for root, dirs, files in os.walk(path):
+        if ".git" in dirs:
+            print(root)
+            # reattach the specified submodule to 'main' or 'master'
+            subprocess.call(["git", "checkout","main"], cwd=root)
+            subprocess.call(["git", "checkout", "master"], cwd=root)
 
 
 def main():
@@ -149,7 +160,11 @@ def main():
 
     # switch to create submodules with the specified path
     parser.add_argument("-c", "--create", help="create submodules", nargs=1)
+
+    # switch to reattach submodules with the specified path
+    parser.add_argument("-a", "--attach", help="attach submodules to main", nargs=1)
     
+
     # switch argument to remove submodule
     parser.add_argument("-d", "--delete-submodule", help="delete submodule", nargs=1)
     # switch argument to move submodule that takes two arguments: old name and new name
@@ -163,6 +178,8 @@ def main():
 
     if args.create:
         create_submodules(args.create[0])
+    elif args.attach:
+        attach_submodule(args.attach[0])
     elif args.move_submodule:
         move_submodule(args.move_submodule[0], args.move_submodule[1])
     elif args.delete_submodule:
